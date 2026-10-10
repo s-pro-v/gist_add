@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Gist Manager (HTML &amp; JSON)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <header>
+        <div class="header-container">
+            <div class="brand-wrap">
+                <div class="brand-icon">
+                    <i class="fa-brands fa-github"></i>
+                </div>
+                <div>
+                    <div class="brand-title">
+                        Gist Express Manager
+                        <span class="badge-tag">HTML &amp; JSON</span>
+                    </div>
+                    <div class="brand-desc">Twórz, przeglądaj kod i uruchamiaj podgląd na żywo</div>
+                </div>
+            </div>
+
+            <div class="token-control-wrap">
+                <div class="token-input-field">
+                    <input type="password" id="gh-token-input" placeholder="GitHub Personal Access Token (ghp_...)"
+                        class="code-font">
+                    <div class="btn-bg div-style-1">
+                        <button id="toggle-token-vis" type="button" class="btn btn-dark button-style-2"
+                            title="Pokaż/Ukryj token">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="btn-bg div-style-3">
+                    <button id="save-token-btn" class="btn btn-dark">
+                        <i class="fa-solid fa-key i-style-4"></i>
+                        <span>Zapisz</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Column: Form & Editor -->
+        <section class="card">
+            <div class="card-head">
+                <div class="card-title">
+                    <i class="fa-solid fa-square-plus i-style-4"></i>
+                    <span>Nowy Gist</span>
+                </div>
+
+                <div class="preset-toolbar">
+                    <div class="btn-bg">
+                        <button type="button" id="preset-html-btn" class="btn btn-accent"
+                            title="Wczytaj szablon strony HTML">
+                            <i class="fa-brands fa-html5"></i> HTML
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <button type="button" id="preset-json-btn" class="btn btn-dark"
+                            title="Wczytaj szablon pliku JSON">
+                            <i class="fa-solid fa-code i-style-5"></i> JSON
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <button type="button" id="preset-clear-btn" class="btn btn-dark" title="Wyczyść formularz">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <form id="gist-form" class="form-style-6">
+                <div class="form-group">
+                    <label for="gist-desc">Opis Gista</label>
+                    <input type="text" id="gist-desc" placeholder="Krótki opis pliku lub projektu...">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gist-filename">Nazwa pliku z rozszerzeniem *</label>
+                        <div class="div-style-7">
+                            <input type="text" id="gist-filename" value="index.html" class="code-font" required="">
+                            <span id="file-ext-badge" class="badge-lang badge-html span-style-8">HTML</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gist-public">Widoczność</label>
+                        <select id="gist-public">
+                            <option value="false">Prywatny (Secret) - tylko z linkiem</option>
+                            <option value="true">Publiczny (Public) - w profilu</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="div-style-9">
+                        <label for="gist-content">Treść kodu (HTML / JSON / Tekst) *</label>
+                        <div class="div-style-10">
+                            <div class="btn-bg hidden" id="format-json-wrap">
+                                <button type="button" id="format-json-btn" class="btn btn-dark button-style-11">
+                                    <i class="fa-solid fa-wand-magic-sparkles i-style-5"></i> Formatuj
+                                    JSON
+                                </button>
+                            </div>
+                            <span id="char-counter" class="code-font">0 znaków</span>
+                        </div>
+                    </div>
+                    <textarea id="gist-content" rows="13" class="code-font textarea-style-12" required=""
+                        placeholder="Wpisz lub wklej swój kod HTML / JSON..."></textarea>
+                </div>
+
+                <div class="div-style-13">
+                    <div class="btn-bg">
+                        <button type="button" id="live-preview-btn" class="btn btn-dark">
+                            <i class="fa-solid fa-desktop i-style-4"></i>
+                            <span>Podgląd formularza</span>
+                        </button>
+                    </div>
+
+                    <div class="btn-bg">
+                        <button type="submit" id="submit-gist-btn" class="btn btn-primary button-style-14">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Opublikuj na GitHubie</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Local Form Preview Box -->
+            <div id="preview-panel" class="preview-box hidden">
+                <div class="preview-box-head">
+                    <span><i class="fa-solid fa-eye"></i> Lokalny podgląd zawartości formularza</span>
+                    <div class="div-style-15">
+                        <div class="btn-bg">
+                            <button type="button" id="open-form-preview-ext" class="btn btn-dark button-style-16"
+                                title="Otwórz w nowym oknie">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </button>
+                        </div>
+                        <div class="btn-bg">
+                            <button type="button" id="close-preview-btn" class="btn btn-dark button-style-16">
+                                <i class="fa-solid fa-xmark"></i> Zamknij
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <iframe id="preview-frame" class="preview-frame"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <div class="card-title">
+                    <i class="fa-solid fa-list-check i-style-4"></i>
+                    <span>Twoje Gisty</span>
+                    <span id="gists-count-badge" class="badge-lang">0</span>
+                </div>
+
+                <div class="btn-bg">
+                    <button id="refresh-gists-btn" class="btn btn-accent button-style-17"
+                        title="Pobierz aktualną listę z GitHuba">
+                        <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
+                        <span>Odśwież</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Token missing warning banner -->
+            <div id="token-missing-banner" class="div-style-18">
+                <div class="div-style-19">
+                    <i class="fa-solid fa-circle-exclamation i-style-5"></i>
+                    <span>Wymagany Token GitHub</span>
+                </div>
+                <p class="p-style-20">
+                    Wprowadź powyżej token z uprawnieniem
+                    <code class="code-font code-style-21">gist</code>,
+                    aby pobierać, podglądać i usuwać pliki ze swojego konta.
+                </p>
+                <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Gist+Manager+Web"
+                    target="_blank" class="a-style-22">
+                    Wygeneruj token na GitHubie →
+                </a>
+            </div>
+
+            <!-- JSON Sync Config & Status Banner -->
+            <div class="div-style-23">
+                <div class="div-style-24">
+                    <div class="div-style-25">
+                        <i class="fa-solid fa-cloud-arrow-up i-style-4"></i>
+                        <span>Auto-Sync z repozytorium:</span>
+                        <code class="code-font code-style-26">s-pro-v/json-lista/html.json</code>
+                        <span id="repo-auth-status" class="badge-lang span-style-27">Sprawdzanie...</span>
+                    </div>
+                    <div class="div-style-28">
+                        <div class="btn-bg">
+                            <button type="button" id="inspect-repo-json-btn" class="btn btn-dark button-style-29"
+                                title="Zobacz co faktycznie jest teraz zapisane w pliku html.json na GitHubie">
+                                <i class="fa-solid fa-file-lines i-style-4"></i> Zobacz
+                                html.json
+                            </button>
+                        </div>
+                        <div class="btn-bg">
+                            <button type="button" id="force-resync-btn" class="btn btn-dark button-style-29"
+                                title="Przeładuj i zaktualizuj wszystkie Gisty do html.json">
+                                <i class="fa-solid fa-arrows-rotate i-style-30"></i> Pełny Re-Sync
+                            </button>
+                        </div>
+                        <label class="label-style-31">
+                            <input type="checkbox" id="sync-json-toggle" checked="" class="input-style-32">
+                            <span>Włączona</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="div-style-33">
+                    <span>Status ostatniej operacji: <strong id="last-sync-status" class="strong-style-34">Brak
+                            operacji</strong></span>
+                    <span class="i-style-4"><i class="fa-solid fa-bolt"></i> Wymuszanie
+                        natychmiastowej zmiany włączone (No-Cache Buster)</span>
+                </div>
+
+                <!-- Live Link Format Controls -->
+                <div class="div-style-35">
+                    <div class="div-style-28">
+                        <label for="url-mode-select" class="label-style-36">Format linku w
+                            html.json:</label>
+                        <select id="url-mode-select" class="select-style-37">
+                            <option value="timestamp" selected="">⚡ Live Permalink + Auto Cache-Buster (?t=timestamp)
+                            </option>
+                            <option value="live">🔗 Czysty Live Permalink (bez SHA)</option>
+                            <option value="sha">📌 Commit SHA (Zablokowana wersja)</option>
+                        </select>
+                    </div>
+                    <div class="btn-bg">
+                        <button type="button" id="copy-cachebust-url-btn" class="btn btn-dark button-style-11"
+                            title="Skopiuj bezpośredni kod fetch() dla Twojej drugiej strony, by pobierała zmiany w tej samej sekundzie">
+                            <i class="fa-solid fa-code i-style-4"></i>
+                            <span>Kod fetch() bez cache dla 2. strony</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search in list -->
+            <div>
+                <input type="text" id="search-gists" placeholder="Filtruj listę po nazwie pliku lub opisie..."
+                    class="code-font input-style-38">
+            </div>
+
+            <!-- Gists Container -->
+            <div id="gists-list" class="gist-list">
+                <div class="div-style-39">
+                    <i class="fa-solid fa-folder-open i-style-40"></i>
+                    Wprowadź token i kliknij "Odśwież", aby załadować swoje Gisty.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Resync Confirmation Modal -->
+    <div id="resync-modal" class="modal-overlay hidden">
+        <div class="modal-card div-style-41">
+            <div class="modal-head div-style-42">
+                <div class="div-style-43">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Potwierdzenie pełnej resynchronizacji</span>
+                </div>
+                <div class="btn-bg">
+                    <button id="resync-modal-close-x" class="btn btn-dark button-style-44">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body div-style-45">
+                <p class="p-style-46">
+                    Czy na pewno chcesz nadpisać całą zawartość pliku
+                    <code class="code-font i-style-4">html.json</code> w repozytorium
+                    aktualną
+                    listą wszystkich Twoich Gistów?
+                </p>
+                <p class="p-style-47">
+                    Każdy wpis otrzyma świeży link omijający cache, dzięki czemu zmiany będą widoczne natychmiast.
+                </p>
+            </div>
+            <div class="div-style-48">
+                <div class="btn-bg">
+                    <button id="resync-modal-cancel" class="btn btn-dark">Anuluj</button>
+                </div>
+                <div class="btn-bg">
+                    <button id="resync-modal-ok" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Zsynchronizuj teraz</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card div-style-41">
+            <div class="modal-head div-style-49">
+                <div class="div-style-50">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Potwierdzenie usunięcia</span>
+                </div>
+                <div class="btn-bg">
+                    <button id="confirm-modal-close-x" class="btn btn-dark button-style-44">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body div-style-45">
+                <p id="confirm-modal-desc" class="p-style-46">Czy na pewno chcesz usunąć ten Gist?</p>
+                <div id="confirm-modal-meta" class="code-font div-style-51"></div>
+            </div>
+            <div class="div-style-48">
+                <div class="btn-bg">
+                    <button id="confirm-modal-cancel" class="btn btn-dark">Anuluj</button>
+                </div>
+                <div class="btn-bg">
+                    <button id="confirm-modal-ok" class="btn btn-danger">
+                        <i class="fa-solid fa-trash-can" id="confirm-del-icon"></i>
+                        <span id="confirm-del-text">Usuń bezpowrotnie</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Dual-Mode Viewer Modal -->
+    <div id="view-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div class="div-style-52">
+                    <i class="fa-regular fa-file-code i-style-4"></i>
+                    <span id="view-modal-filename" class="code-font span-style-53">plik.html</span>
+                    <span id="view-modal-badge" class="badge-lang">KOD</span>
+                </div>
+
+                <!-- Mode switcher tabs -->
+                <div class="modal-tabs">
+                    <div class="btn-bg">
+                        <button type="button" id="tab-preview-btn" class="btn modal-tab-btn active">
+                            <i class="fa-solid fa-play"></i> Podgląd na żywo
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <button type="button" id="tab-code-btn" class="btn modal-tab-btn">
+                            <i class="fa-solid fa-code"></i> Źródło
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <button type="button" id="tab-edit-btn" class="btn modal-tab-btn">
+                            <i class="fa-solid fa-pen-to-square"></i> Edycja
+                        </button>
+                    </div>
+                </div>
+
+                <div class="div-style-28">
+                    <div class="btn-bg">
+                        <button id="modal-delete-btn" class="btn btn-danger button-style-2" title="Usuń ten Gist">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <button id="copy-view-btn" class="btn btn-dark button-style-2" title="Skopiuj treść">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <a id="view-github-link" href="#" target="_blank" class="btn btn-dark button-style-2"
+                            title="Otwórz na gist.github.com">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                    <div class="btn-bg">
+                        <button id="close-view-btn" class="btn btn-dark button-style-2" title="Zamknij okno (ESC)">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body div-style-54">
+                <!-- Rendered Live Frame Container -->
+                <div id="modal-preview-wrapper" class="div-style-55">
+                    <div class="preview-viewport-toolbar">
+                        <div class="div-style-56">
+                            <span class="span-style-57">Widok:</span>
+                            <div class="viewport-btn-group">
+                                <div class="btn-bg">
+                                    <button type="button" class="btn active" id="vp-full-btn" title="Pełna szerokość">
+                                        <i class="fa-solid fa-desktop"></i> Auto
+                                    </button>
+                                </div>
+                                <div class="btn-bg">
+                                    <button type="button" class="btn" id="vp-tablet-btn" title="Tablet (768px)">
+                                        <i class="fa-solid fa-tablet-screen-button"></i> Tablet
+                                    </button>
+                                </div>
+                                <div class="btn-bg">
+                                    <button type="button" class="btn" id="vp-mobile-btn" title="Telefon (390px)">
+                                        <i class="fa-solid fa-mobile-screen"></i> Smartfon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="div-style-28">
+                            <div class="btn-bg">
+                                <button type="button" id="reload-preview-btn" class="btn btn-dark button-style-29"
+                                    title="Przeładuj ramkę">
+                                    <i class="fa-solid fa-rotate-right"></i> Odśwież widok
+                                </button>
+                            </div>
+                            <div class="btn-bg">
+                                <button type="button" id="open-new-tab-preview" class="btn btn-accent button-style-29"
+                                    title="Otwórz podgląd w pełnym nowym oknie">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Pełne okno
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="frame-centering-box" class="modal-frame-container">
+                        <iframe id="modal-preview-frame"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                            class="iframe-style-58"></iframe>
+                    </div>
+                </div>
+
+                <!-- Raw Code Container -->
+                <div id="modal-code-wrapper" class="hidden div-style-59">
+                    <pre id="view-modal-code" class="code-font pre-style-60"></pre>
+                </div>
+
+                <!-- Content Editor Container -->
+                <div id="modal-edit-wrapper" class="hidden div-style-61">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-gist-filename">Nazwa pliku</label>
+                            <input type="text" id="edit-gist-filename" class="code-font input-style-62">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-gist-desc">Opis Gista</label>
+                            <input type="text" id="edit-gist-desc" class="input-style-62">
+                        </div>
+                    </div>
+
+                    <div class="form-group div-style-63">
+                        <div class="div-style-64">
+                            <label for="edit-gist-content">Treść pliku (Edycja)</label>
+                            <div class="div-style-56">
+                                <div class="btn-bg">
+                                    <button type="button" id="edit-preview-now-btn"
+                                        class="btn btn-accent button-style-11"
+                                        title="Zobacz jak wyglądają wprowadzone zmiany bez zapisywania">
+                                        <i class="fa-solid fa-play"></i> Podgląd roboczy zmian
+                                    </button>
+                                </div>
+                                <div class="btn-bg hidden" id="edit-format-json-wrap">
+                                    <button type="button" id="edit-format-json-btn"
+                                        class="btn btn-dark button-style-11">
+                                        <i class="fa-solid fa-wand-magic-sparkles i-style-5"></i> Formatuj
+                                        JSON
+                                    </button>
+                                </div>
+                                <span id="edit-char-counter" class="code-font span-style-65">0 znaków</span>
+                            </div>
+                        </div>
+                        <textarea id="edit-gist-content" class="code-font textarea-style-66"
+                            placeholder="Wpisz lub edytuj kod..."></textarea>
+                    </div>
+
+                    <div class="div-style-67">
+                        <div class="btn-bg">
+                            <button type="button" id="edit-cancel-btn" class="btn btn-dark">
+                                <i class="fa-solid fa-xmark"></i> Anuluj
+                            </button>
+                        </div>
+                        <div class="btn-bg">
+                            <button type="button" id="save-gist-edit-btn" class="btn btn-primary button-style-14">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <span>Zapisz zmiany</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repo JSON Inspection Modal -->
+    <div id="repo-inspect-modal" class="modal-overlay hidden">
+        <div class="modal-card div-style-68">
+            <div class="modal-head">
+                <div class="div-style-56">
+                    <i class="fa-solid fa-database i-style-4"></i>
+                    <span class="code-font span-style-69">Podgląd
+                        s-pro-v/json-lista/html.json</span>
+                    <span id="repo-inspect-count" class="badge-lang">0 wpisów</span>
+                </div>
+                <div class="div-style-70">
+                    <div class="btn-bg">
+                        <button type="button" id="refresh-repo-inspect-btn" class="btn btn-dark button-style-2">
+                            <i class="fa-solid fa-arrows-rotate"></i> Odśwież
+                        </button>
+                    </div>
+                    <div class="btn-bg">
+                        <button type="button" id="close-repo-inspect-btn" class="btn btn-dark button-style-2">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body div-style-71">
+                <pre id="repo-inspect-content" class="code-font pre-style-72">Wczytywanie z GitHuba...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
