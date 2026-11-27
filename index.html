@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pl" theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/images/favicon.png?v=1">
+    <title>OXY_OS // GIST-JSON SYNC TERMINAL + MONACO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Share+Tech+Mono&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app-panel hud-bracket">
+        <!-- TOPBAR HUD -->
+        <header class="app-nav">
+            <div class="brand-badge">
+                <div class="btn-bg">
+                    <div class="brand-icon">
+                        <i data-lucide="terminal"></i>
+                    </div>
+                </div>
+                <div class="btn-bg">
+                    <div class="brand-info">
+                        <h1 class="brand-title">OXY_OS // GIST TERMINAL</h1>
+                        <p class="brand-sub">JSON SYNC: s-pro-v/json-lista (html.json)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <!-- Kaseta PAT Token -->
+                <div class="btn-bg" title="Personal Access Token GitHub">
+                    <div class="token-box-hud">
+                        <span class="token-label"><i data-lucide="key"></i> PAT:</span>
+                        <input type="password" id="patInput" class="token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                            autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Kaseta synchronizacji z GitHub -->
+                <div class="btn-bg" title="Synchronizacja z GitHub">
+                    <button id="btnFetchSync" class="glass-btn highlight"
+                        title="Pobierz obecny html.json oraz wszystkie Gisty (publiczne + sekretne)">
+                        <i data-lucide="git-pull-request"></i>
+                        <span class="glass-btn__text">
+                            <span class="glass-btn__label">[1] SYNC GISTS</span>
+                            <span class="glass-btn__desc">POBIERZ GISTY</span>
+                        </span>
+                    </button>
+
+                    <button id="btnPushGithub" class="glass-btn success"
+                        title="Zapisz aktualną listę bezpośrednio do s-pro-v/json-lista/html.json">
+                        <i data-lucide="git-commit"></i>
+                        <span class="glass-btn__text">
+                            <span class="glass-btn__label">[2] PUSH REPO</span>
+                            <span class="glass-btn__desc">ZAPISZ HTML.JSON</span>
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Kaseta eksportu i schowka JSON -->
+                <div class="btn-bg" title="Operacje na pliku html.json">
+                    <button id="btnCopyJson" class="glass-btn info" title="Kopiuj zawartość html.json do schowka">
+                        <i data-lucide="copy"></i>
+                        <span class="glass-btn__text">
+                            <span class="glass-btn__label">KOPIUJ</span>
+                            <span class="glass-btn__desc">JSON</span>
+                        </span>
+                    </button>
+
+                    <button id="btnDownloadJson" class="glass-btn info" title="Pobierz plik html.json na dysk">
+                        <i data-lucide="download"></i>
+                        <span class="glass-btn__text">
+                            <span class="glass-btn__label">POBIERZ</span>
+                            <span class="glass-btn__desc">.JSON</span>
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Przycisk tworzenia nowego Gista -->
+                <div class="btn-bg">
+                    <button id="btnOpenCreator" class="glass-btn highlight btn-primary-add"
+                        title="Utwórz nowy Gist w edytorze Monaco">
+                        <i data-lucide="plus"></i>
+                        <span class="glass-btn__text">
+                            <span class="glass-btn__label">NOWY GIST</span>
+                            <span class="glass-btn__desc">POST GITHUB</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KORPUS GŁÓWNY -->
+        <div class="app-panels">
+            <!-- PASEK BOCZNY: REJESTR MODUŁÓW -->
+            <aside class="app-aside" id="appAside">
+                <div class="aside-header">
+                    <div class="btn-bg w-full">
+                        <div class="search-box">
+                            <i data-lucide="search" class="search-icon"></i>
+                            <input type="text" id="searchInput" class="search-input"
+                                placeholder="[SZUKAJ W BAZIE MODUŁÓW]...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="aside-toolbar">
+                    <div class="btn-bg">
+                        <button id="btnAddManual" class="glass-btn meta-action-btn"
+                            title="Dodaj istniejący link RAW ręcznie">
+                            <i data-lucide="link"></i>
+                            <span>+ URL</span>
+                        </button>
+                        <button id="btnReindex" class="glass-btn meta-action-btn"
+                            title="Przenumeruj ID sekwencyjnie od 1">
+                            <i data-lucide="hash"></i>
+                            <span>REINDEX</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="btn-bg flex-1 flex-col">
+                    <div id="itemsList" class="notes-tree-list"></div>
+                </div>
+            </aside>
+
+            <!-- OBSZAR CENTRALNY (WORKSPACE) -->
+            <main class="app-content">
+                <!-- Status bar HUD -->
+                <div class="status-bar">
+                    <div class="btn-bg">
+                        <div class="status-chip">
+                            <span>MODUŁY:</span>
+                            <span id="countBadge" class="text-highlight">0</span>
+                        </div>
+                    </div>
+                    <div class="btn-bg">
+                        <div class="status-chip">
+                            <span>SHA REPO:</span>
+                            <span id="shaDisplay" class="text-highlight">BRAK</span>
+                        </div>
+                    </div>
+                    <div class="btn-bg status-chip-save">
+                        <div class="status-chip">
+                            <div class="led" id="statusLed"></div>
+                            <span>STATUS:</span>
+                            <span id="statusText" class="text-success">GOTOWY</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel roboczy edytora i podglądu -->
+                <div class="editor-panel hud-bracket">
+                    <!-- Pasek metadanych i zakładki -->
+                    <div class="btn-bg w-full">
+                        <div class="editor-meta">
+                            <div class="meta-info" id="editorModeBanner">
+                                <div class="mode-banner-title">
+                                    <i data-lucide="eye" id="editorModeIcon"></i>
+                                    <span class="meta-tag" id="previewMetaWrap">MODUŁ: <b id="activePreviewName">BRAK
+                                            AKTYWNEGO MODUŁU</b></span>
+                                    <span id="editorModeLabel" class="hidden">TRYB: TWORZENIE NOWEGO GISTA (POST)</span>
+                                </div>
+                            </div>
+
+                            <!-- Przełączniki zakładek -->
+                            <div class="btn-bg">
+                                <button class="view-mode-btn tab-btn active" data-tab="preview"
+                                    title="Podgląd na żywo (IFRAME)">
+                                    <i data-lucide="eye"></i>
+                                    <span>PODGLĄD</span>
+                                </button>
+                                <button class="view-mode-btn tab-btn" data-tab="editor" id="tabEditorBtn"
+                                    title="Edytor kodu Monaco">
+                                    <i data-lucide="code"></i>
+                                    <span>EDYTOR MONACO</span>
+                                </button>
+                                <button class="view-mode-btn tab-btn" data-tab="json" title="Surowy kod html.json">
+                                    <i data-lucide="file-code"></i>
+                                    <span>INSPEKTOR JSON</span>
+                                </button>
+                            </div>
+
+                            <div class="btn-bg">
+                                <button type="button" class="glass-btn meta-action-btn hidden" id="btnCancelEditTop"
+                                    title="Anuluj edycję i wróć do podglądu">
+                                    <i data-lucide="x"></i>
+                                    <span>ANULUJ</span>
+                                </button>
+                                <button type="button" class="glass-btn meta-action-btn hidden" id="btnResetToNewMode"
+                                    title="Przełącz na tworzenie nowego Gista">
+                                    <i data-lucide="plus-circle"></i>
+                                    <span>NOWY GIST</span>
+                                </button>
+                                <button type="button" class="glass-btn meta-action-btn" id="btnOpenSettings"
+                                    title="Ustawienia edytora Monaco">
+                                    <i data-lucide="sliders"></i>
+                                    <span>USTAWIENIA</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Obszar zawartości -->
+                    <div class="workspace-container">
+                        <!-- TAB 1: LIVE IFRAME PREVIEW -->
+                        <div class="empty-preview" id="previewPlaceholder">
+                            <i data-lucide="terminal"></i>
+                            <div>[ WYBIERZ VIEW ABY URUCHOMIĆ PODGLĄD LUB EDIT ABY EDYTOWAĆ KOD ]</div>
+                            <span>MONACO EDITOR + GITHUB REST API PATCH/POST</span>
+                        </div>
+                        <iframe id="previewFrame" class="preview-iframe hidden"
+                            sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"></iframe>
+
+                        <!-- TAB 2: MONACO CREATOR & EXISTING GIST EDITOR -->
+                        <div id="creatorPanel" class="creator-panel hidden">
+                            <div class="creator-grid">
+                                <div class="creator-field">
+                                    <label for="newGistTitle"><i data-lucide="type"></i> TYTUŁ MODUŁU (DO MENU
+                                        JSON)</label>
+                                    <input type="text" id="newGistTitle" placeholder="np. Kalkulator Normy 12H">
+                                </div>
+                                <div class="creator-field">
+                                    <label for="newGistFilename"><i data-lucide="file"></i> NAZWA PLIKU W GIST
+                                        (.HTML)</label>
+                                    <input type="text" id="newGistFilename" placeholder="np. kalkulator-normy.html">
+                                </div>
+                                <div class="creator-field">
+                                    <label for="newGistVisibility"><i data-lucide="shield"></i> WIDOCZNOŚĆ GIST</label>
+                                    <select id="newGistVisibility">
+                                        <option value="false" selected>SECRET (UKRYTY)</option>
+                                        <option value="true">PUBLIC (PUBLICZNY)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="creator-editor-wrap">
+                                <div class="creator-editor-header">
+                                    <span>// MONACO EDITOR // HTML5 + CSS3 + ES6</span>
+                                    <div class="editor-header-actions">
+                                        <input type="file" id="fileUploadInput" accept=".html,.htm,.txt" class="hidden">
+                                        <button type="button" class="mini-btn" id="btnPresetHtml"
+                                            title="Wczytaj szablon demonstracyjny HTML FUI"><i data-lucide="layout"></i>
+                                            SZABLON HTML</button>
+                                        <button type="button" class="mini-btn" id="btnPresetJson"
+                                            title="Wczytaj szablon konfiguracji JSON"><i data-lucide="file-json"></i>
+                                            SZABLON JSON</button>
+                                        <button type="button" class="mini-btn" id="btnFormatCode"
+                                            title="Formatuj wcięcia kodu (Shift+Alt+F)"><i data-lucide="align-left"></i>
+                                            FORMATUJ</button>
+                                        <button type="button" class="mini-btn" id="btnLoadLocalFile"
+                                            title="Wczytaj kod z dysku lokalnego"><i data-lucide="upload"></i>
+                                            WCZYTAJ</button>
+                                        <button type="button" class="mini-btn" id="btnTestLocalPreview"
+                                            title="Przetestuj w ramce podglądu"><i data-lucide="play"></i>
+                                            TESTUJ</button>
+                                        <button type="button" class="mini-btn danger" id="btnClearCreator"
+                                            title="Wyczyść edytor"><i data-lucide="trash-2"></i> WYCZYŚĆ</button>
+                                    </div>
+                                </div>
+                                <div id="monacoHost"></div>
+                            </div>
+
+                            <div class="creator-footer">
+                                <label class="hud-check-wrap">
+                                    <input type="checkbox" id="chkAutoPush" checked>
+                                    <span>AUTO-PUSH HTML.JSON DO REPOZYTORIUM PO ZAPISIE</span>
+                                </label>
+
+                                <div class="creator-footer-actions">
+                                    <div class="btn-bg">
+                                        <button type="button" class="glass-btn danger hidden" id="btnCancelEdit"
+                                            title="Anuluj edycję i powróć do podglądu">
+                                            <i data-lucide="x-circle"></i>
+                                            <span class="glass-btn__text">
+                                                <span class="glass-btn__label">[ANULUJ]</span>
+                                                <span class="glass-btn__desc">PORZUĆ ZMIANY</span>
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <div class="btn-bg">
+                                        <button type="button" class="glass-btn success" id="btnPublishGist">
+                                            <i data-lucide="cloud-upload"></i>
+                                            <span class="glass-btn__text">
+                                                <span class="glass-btn__label">[PUBLISH] ZAPISZ GIST</span>
+                                                <span class="glass-btn__desc">ORAZ REJESTR HTML.JSON</span>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: RAW JSON INSPECTOR -->
+                        <textarea id="jsonOutput" class="hidden" spellcheck="false"></textarea>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL POTWIERDZENIA USUNIĘCIA MODUŁU / GISTA -->
+    <div id="deleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true"
+        aria-labelledby="deleteModalTitleText">
+        <div class="modal-box hud-bracket">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="alert-triangle"></i>
+                    <span id="deleteModalTitleText">POTWIERDZENIE USUNIĘCIA</span>
+                </div>
+                <div class="btn-bg">
+                    <button type="button" class="mini-btn" id="btnDeleteModalClose" title="Zamknij okno">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <div class="delete-module-card">
+                    <div class="delete-module-title" id="deleteModalTitle">[#1] Nazwa Modułu</div>
+                    <div class="delete-module-filename">
+                        <i data-lucide="file"></i>
+                        <span id="deleteModalFilenameText">plik.html</span>
+                    </div>
+                    <div class="delete-module-id">
+                        <span>GIST ID:</span>
+                        <code id="deleteModalGistIdVal">...</code>
+                    </div>
+                </div>
+
+                <p class="delete-modal-warning">
+                    Wybierz zakres operacji usuwania:
+                </p>
+
+                <div class="delete-modal-options">
+                    <label class="hud-check-wrap">
+                        <input type="checkbox" id="chkDeleteFromRepoJson" checked>
+                        <span>USUŃ Z REJESTRU HTML.JSON (REPO PUSH)</span>
+                    </label>
+                    <div class="delete-hint-text">
+                        Zaktualizuje i wyśle plik html.json do repozytorium s-pro-v/json-lista.
+                    </div>
+                </div>
+
+                <div class="delete-modal-options" id="deleteAlsoWrap">
+                    <label class="hud-check-wrap">
+                        <input type="checkbox" id="chkDeleteAlsoFromGist" checked>
+                        <span>USUŃ FIZYCZNY GIST Z GITHUB (DELETE /gists)</span>
+                    </label>
+                    <div class="delete-hint-text">
+                        Trwale usunie ten Gist z Twojego konta na gist.github.com.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="btn-bg">
+                    <button type="button" class="glass-btn" id="btnDeleteModalCancel" title="Anuluj operację">
+                        <i data-lucide="x"></i>
+                        <span>ANULUJ</span>
+                    </button>
+                </div>
+                <div class="btn-bg">
+                    <button type="button" class="glass-btn danger" id="btnDeleteModalConfirm"
+                        title="Potwierdź usunięcie">
+                        <i data-lucide="trash-2" id="deleteConfirmIcon"></i>
+                        <span id="deleteConfirmText">USUŃ POZYCJĘ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NATIVE MONACO SETTINGS WEB COMPONENT -->
+    <monaco-editor-settings id="editorSettings"></monaco-editor-settings>
+
+    <!-- MONACO EDITOR AMD LOADER (LOCAL) -->
+    <script src="monaco-loader.js"></script>
+    <script src="monaco-themes.js"></script>
+    <script src="settings-component.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
